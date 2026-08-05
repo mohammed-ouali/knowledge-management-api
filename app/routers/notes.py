@@ -1,53 +1,117 @@
-from fastapi import APIRouter
-from fastapi import HTTPException, status
-from app.schemas.note import CreateNote, NoteResponse, UpdateNote
+from datetime import datetime, timezone
 
-router = APIRouter(prefix= "/notes", tags= ["Notes"])
+from fastapi import APIRouter, Depends, HTTPException, status
 
-notes = []
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.models import Note
+from app.schemas.note import NoteCreate, NoteUpdate, NoteResponse
 
 
-@router.get("/", response_model= list[NoteResponse])
-async def get_notes():
+router = APIRouter(
+    prefix="/notes",
+    tags=["Notes"]
+)
+
+
+@router.get("/", response_model=list[NoteResponse])
+async def get_notes(db: AsyncSession = Depends(get_db)):
+    statement = select(Note)
+    result = await db.execute(statement)
+    notes = result.scalars().all()
+
     return notes
 
 
-@router.get("/{id}", response_model= NoteResponse)
-async def get_note(id: int):
-    for note in notes:
-        if note["id"] == id:
-            return note
-    raise HTTPException(
-        status_code=404,
-        detail="Note not found")
+@router.get("/{note_id}", response_model=NoteResponse)
+async def get_note(note_id: int, db: AsyncSession = Depends(get_db)):
+    statement = select(Note).where(Note.id == note_id)
+    result = await db.execute(statement)
+    note = result.scalar_one_or_none()
 
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
 
-@router.post("/", status_code= status.HTTP_201_CREATED, response_model= NoteResponse)
-async def create_note(note: CreateNote):
-    note = note.model_dump()
-    note["id"] = len(notes) + 1
-    notes.append(note)
     return note
 
 
-@router.put("/{id}", response_model= NoteResponse)
-async def update_note(id: int, updated_note: UpdateNote):
-    for note in notes:
-        if note["id"] == id:
-            note["title"] = updated_note.title
-            note["content"] = updated_note.content
-            return note
-    raise HTTPException(
-        status_code=404,
-        detail="Note not found")
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=NoteResponse
+)
+async def create_note(
+    note_data: NoteCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    note = Note(
+        title=note_data.title,
+        content=note_data.content,
+        folder_id=note_data.folder_id,
+        author_id=note_data.author_id
+    )
+
+    db.add(note)
+
+    await db.commit()
+    await db.refresh(note)
+
+    return note
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_note(id: int):
-    for note in notes:
-        if note["id"] == id:
-            notes.remove(note)
-            return
-    raise HTTPException(
-        status_code=404,
-        detail="Note not found")
+@router.put("/{note_id}", response_model=NoteResponse)
+async def update_note(
+    note_id: int,
+    updated_data: NoteUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    statement = select(Note).where(Note.id == note_id)
+    result = await db.execute(statement)
+    note = result.scalar_one_or_none()
+
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+
+    if updated_data.title is not None:
+        note.title = updated_data.title
+
+    if updated_data.content is not None:
+        note.content = updated_data.content
+
+    if updated_data.folder_id is not None:
+        note.folder_id = updated_data.folder_id
+
+    note.updated_at = datetime.now(timezone.utc)
+
+    await db.commit()
+    await db.refresh(note)
+
+    return note
+
+
+@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_note(
+    note_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    statement = select(Note).where(Note.id == note_id)
+    result = await db.execute(statement)
+    note = result.scalar_one_or_none()
+
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found"
+        )
+
+    await db.delete(note)
+
+    await db.commit()

@@ -1,12 +1,42 @@
-# Virtual environment
+# Virtual environments
 .venv/
+venv/
 
 # Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
 # Environment variables
 .env
+.env.*
 
-# VS Code settings
+# IDE settings
 .vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checking
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Local SQLite databases (if ever used)
+*.db
+*.sqlite3
