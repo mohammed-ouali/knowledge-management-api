@@ -1,9 +1,9 @@
 from sqlalchemy import Table, Column, ForeignKey
 
-from app.database import Base
+from app.core.database import Base
 
 note_tag = Table(
-    "note_tags",
+    "note_tag",
     Base.metadata,
 
     Column(

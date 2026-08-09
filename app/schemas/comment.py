@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict
 
 class CommentCreate(BaseModel):
     content: str
-    not_id: int
+    note_id: int
     author_id: int
 
 

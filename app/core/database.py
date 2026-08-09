@@ -3,16 +3,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = (
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/knowledge_management_api"
-)
+from app.core.config import settings
 
 engine = create_async_engine(
-    DATABASE_URL,
-    echo=True,
+    settings.database_url,
+    echo=settings.debug,
 )
 
 SessionLocal = async_sessionmaker(

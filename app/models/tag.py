@@ -1,7 +1,7 @@
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database import Base
+from app.core.database import Base
 
 
 class Tag(Base):
@@ -19,6 +19,6 @@ class Tag(Base):
     )
 
     notes: Mapped[list["Note"]] = relationship(
-        secondary="note_tags",
+        secondary="note_tag",
         back_populates="tags"
     )
