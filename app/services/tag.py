@@ -1,6 +1,6 @@
 from app.core.exceptions import TagAlreadyExistsException, TagNotFoundException
 from app.models import Tag
-from app.repositories.tag_repository import TagRepository
+from app.repositories.tag import TagRepository
 from app.schemas.tag import TagCreate, TagUpdate
 
 

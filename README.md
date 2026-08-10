@@ -1,37 +1,88 @@
-# Notes App API
+# Notion-Lite API
 
-An asynchronous RESTful API for managing users, folders, notes, comments, and tags. Built with FastAPI, SQLAlchemy (AsyncIO), PostgreSQL, and Pydantic following a Clean 3-Layer Architecture.
+An asynchronous RESTful backend API built to support a knowledge management and note-taking platform.
 
----
+## ERD Diagram
 
-## 🏗 Architecture
+![Entity Relationship Diagram](assets/erd.png)
 
-The project follows a modular, three-layer architectural pattern to maintain clear separation of concerns:
+## Goal of the Project
 
-1. **Router Layer (`app/routers`)**: Handles HTTP requests, path/query parameters, and response serialization.
-2. **Service Layer (`app/services`)**: Enforces core domain business logic and raises domain exceptions.
-3. **Repository Layer (`app/repositories`)**: Encapsulates database interactions using SQLAlchemy async sessions.
+The objective of this project is to provide a clean, scalable backend service for managing structured notes, organization folders, user comments, and tag categorization. It focuses on applying software engineering practices, async I/O database operations, and clear domain separation.
 
----
+## Tech Stack
 
-## 🛠 Tech Stack
+- Framework: FastAPI
+- ORM: SQLAlchemy 2.0 (Async)
+- Database Driver: Asyncpg / PostgreSQL
+- Migration Tool: Alembic
+- Data Validation: Pydantic v2
 
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
-- **ORM**: [SQLAlchemy 2.0 (Async)](https://www.sqlalchemy.org/)
-- **Database**: PostgreSQL
-- **Migrations**: [Alembic](https://alembic.sqlalchemy.org/)
-- **Data Validation**: [Pydantic v2](https://docs.pydantic.dev/)
+## Architecture
 
----
+The project adheres to a 3-Layer Clean Architecture:
 
-## 📁 Project Structure
+1. Router Layer (Presentation): Receives incoming HTTP requests, parses parameters, performs validation, and formats HTTP responses.
+2. Service Layer (Business Logic): Implements core domain logic, coordinates data operations, and triggers domain exceptions.
+3. Repository Layer (Data Access): Handles database operations directly via SQLAlchemy async queries, abstracting storage details from the service layer.
+
+## File Hierarchy
 
 ```text
-app/
-├── core/               # App configuration, database setup, domain exceptions
-├── models/             # SQLAlchemy ORM models & table relationships
-├── schemas/            # Pydantic schemas for request/response validation
-├── repositories/       # Async database access layer
-├── services/           # Business logic layer
-└── routers/            # FastAPI API route definitions
-main.py                 # Application entrypoint & middleware configuration
+.
+├── assets/
+│   └── erd.png
+├── app/
+│   ├── core/
+│   │   ├── database.py
+│   │   └── exceptions.py
+│   ├── models/
+│   │   └── ...
+│   ├── repositories/
+│   │   └── ...
+│   ├── routers/
+│   │   └── ...
+│   ├── schemas/
+│   │   └── ...
+│   └── services/
+│       └── ...
+├── alembic/
+├── .env
+├── alembic.ini
+├── main.py
+└── requirements.txt
+```
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone [https://github.com/your-username/notion-lite-api.git](https://github.com/your-username/notion-lite-api.git)
+cd notion-lite-api
+```
+
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+3. Install requirements:
+```bash
+pip install -r requirements.txt
+```
+
+4. Configure the environment database URL in `.env`:
+```env
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/notes_db
+```
+
+5. Apply database migrations:
+```bash
+alembic upgrade head
+```
+
+6. Run the server:
+```bash
+uvicorn main:app --reload
+```

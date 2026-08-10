@@ -1,6 +1,6 @@
 from app.core.exceptions import CommentNotFoundException
 from app.models import Comment
-from app.repositories.comment_repository import CommentRepository
+from app.repositories.comment import CommentRepository
 from app.schemas.comment import CommentCreate, CommentUpdate
 
 
