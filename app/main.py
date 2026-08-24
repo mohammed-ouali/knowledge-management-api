@@ -2,11 +2,7 @@ from fastapi import FastAPI
 
 from app.core.config import settings
 
-from app.routers.notes import router as notes_router
-from app.routers.users import router as users_router
-from app.routers.folders import router as folders_router
-from app.routers.comments import router as comments_router
-from app.routers.tags import router as tags_router
+from app.api.v1.router import api_router
 
 from app.middlewares.logging import PerformanceLoggingMiddleware
 
@@ -22,11 +18,7 @@ async def root():
     return {"message": "API is running"}
 
 
-app.include_router(notes_router)
-app.include_router(users_router)
-app.include_router(folders_router)
-app.include_router(comments_router)
-app.include_router(tags_router)
+app.include_router(api_router, prefix="/api/v1")
 
 app.add_middleware(
     PerformanceLoggingMiddleware

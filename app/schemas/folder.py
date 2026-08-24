@@ -2,13 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    field_validator,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class FolderBase(BaseModel):
@@ -29,20 +23,13 @@ class FolderBase(BaseModel):
 
 
 class FolderCreate(FolderBase):
-    user_id: int = Field(
-        ...,
-        gt=0,
-        description="ID of the user who owns this folder. Must be a positive integer.",
-    )
+    user_id: int = Field(..., gt=0)
+    parent_id: int | None = Field(None, gt=0)
 
 
 class FolderUpdate(BaseModel):
-    name: str | None = Field(
-        None,
-        min_length=1,
-        max_length=128,
-        description="Updated folder name must be between 1 and 128 characters long.",
-    )
+    name: str | None = Field(None, min_length=1, max_length=128)
+    parent_id: int | None = Field(None, gt=0)
 
     @field_validator("name")
     @classmethod
@@ -56,14 +43,16 @@ class FolderUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_at_least_one_field(self) -> FolderUpdate:
-        if self.name is None:
-            raise ValueError("Update payload cannot be empty. A new folder name must be provided.")
+        if self.name is None and self.parent_id is None:
+            raise ValueError("Update payload cannot be empty.")
         return self
 
 
 class FolderResponse(FolderBase):
     id: int
     user_id: int
+    parent_id: int | None
     created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

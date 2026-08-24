@@ -2,13 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import ( 
-    BaseModel, 
-    ConfigDict, 
-    Field,
-    field_validator,
-    model_validator
-    )
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.schemas.label import LabelResponse
 
 
 class NoteBase(BaseModel):
@@ -16,20 +12,17 @@ class NoteBase(BaseModel):
         ...,
         min_length=1,
         max_length=255,
-        description="Note title must be between 1 and 255 characters long."
     )
-
-    content: str | None = Field(
-        None, 
-        description="Optional detailed content or body of the note."
-    )
+    content: str | None = None
 
     @field_validator("title")
     @classmethod
-    def validate_and_sanitize_title(cls, value : str) -> str:
+    def validate_and_sanitize_title(cls, value: str) -> str:
         trimmed_value = value.strip()
+
         if not trimmed_value:
-            raise ValueError("Note title can not consist only of whitespaces")
+            raise ValueError("Note title cannot consist only of whitespace.")
+
         return trimmed_value
 
     @field_validator("content")
@@ -37,21 +30,13 @@ class NoteBase(BaseModel):
     def sanitize_content(cls, value: str | None) -> str | None:
         if value is None:
             return None
+
         return value.strip()
 
 
-
 class NoteCreate(NoteBase):
-    folder_id: int | None = Field(
-        None,
-        gt=0,
-        description="Optional folder ID to organize the note. Must be a positive integer if provided.",
-    )
-    user_id: int = Field(
-        ...,
-        gt=0,
-        description="ID of the user who owns this note. Must be a positive integer.",
-    )
+    user_id: int = Field(..., gt=0)
+    folder_id: int | None = Field(None, gt=0)
 
 
 class NoteUpdate(BaseModel):
@@ -59,26 +44,21 @@ class NoteUpdate(BaseModel):
         None,
         min_length=1,
         max_length=255,
-        description="Updated note title must be between 1 and 255 characters long.",
     )
-    content: str | None = Field(
-        None,
-        description="Updated content or body of the note.",
-    )
-    folder_id: int | None = Field(
-        None,
-        gt=0,
-        description="Updated folder ID or None to remove the note from a folder.",
-    )
+    content: str | None = None
+    folder_id: int | None = Field(None, gt=0)
 
     @field_validator("title")
     @classmethod
     def validate_and_sanitize_title(cls, value: str | None) -> str | None:
         if value is None:
-            return None
+            raise ValueError("Note title cannot be null.")
+
         trimmed_value = value.strip()
+
         if not trimmed_value:
             raise ValueError("Note title cannot consist only of whitespace.")
+
         return trimmed_value
 
     @field_validator("content")
@@ -86,16 +66,14 @@ class NoteUpdate(BaseModel):
     def sanitize_content(cls, value: str | None) -> str | None:
         if value is None:
             return None
+
         return value.strip()
 
     @model_validator(mode="after")
-    def validate_at_least_one_field(self) -> "NoteUpdate":
-        if not any([
-            self.title is not None,
-            self.content is not None,
-            self.folder_id is not None
-        ]):
-            raise ValueError("Update payload cannot be empty. At least one field must be provided.")
+    def validate_at_least_one_field(self):
+        if not self.model_fields_set:
+            raise ValueError("Update payload cannot be empty.")
+
         return self
 
 
@@ -105,5 +83,6 @@ class NoteResponse(NoteBase):
     folder_id: int | None
     created_at: datetime
     updated_at: datetime
+    labels: list[LabelResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

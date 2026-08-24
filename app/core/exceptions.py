@@ -29,16 +29,12 @@ class NoteNotFoundException(DomainException):
         super().__init__(message)
 
 
-class TagNotFoundException(DomainException):
-    def __init__(self, message: str = "Tag not found"):
+class LabelNotFoundException(DomainException):
+    def __init__(self, message: str = "Label not found"):
         super().__init__(message)
 
 
-class TagAlreadyExistsException(DomainException):
-    def __init__(self, message: str = "Tag already exists"):
+class LabelAlreadyExistsException(DomainException):
+    def __init__(self, message: str = "Label already exists"):
         super().__init__(message)
 
-
-class CommentNotFoundException(DomainException):
-    def __init__(self, message: str = "Comment not found"):
-        super().__init__(message)

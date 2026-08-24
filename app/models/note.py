@@ -1,6 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import String, DateTime, Text, ForeignKey
+from typing import Optional
+
+from sqlalchemy import String, DateTime, Text, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -9,63 +11,45 @@ from app.core.database import Base
 class Note(Base):
     __tablename__ = "notes"
 
-    id: Mapped[int] = mapped_column(
-        primary_key=True,
-        autoincrement=True
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
 
-    folder_id: Mapped[int] = mapped_column(
-        ForeignKey("folders.id"),
-        nullable=False,
+    folder_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("folders.id", ondelete="CASCADE"), 
+        index=True)
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
         index=True
     )
 
-    author_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=False,
-        index=True
-    )
+    title: Mapped[str] = mapped_column(String(255))
 
-    title: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
-    )
-
-    content: Mapped[str] = mapped_column(
-        Text,
-        nullable=False
-    )
+    content: Mapped[str] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        nullable=False,
         index=True,
-        default=lambda: datetime.now(timezone.utc)
+        server_default=func.now()
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc)
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
-    folder: Mapped["Folder"] = relationship(
+    folder: Mapped[Optional["Folder"]] = relationship(
         back_populates="notes"
     )
 
-    author: Mapped["User"] = relationship(
+    user: Mapped["User"] = relationship(
         back_populates="notes"
     )
 
-    attachments: Mapped[list["Attachment"]] = relationship(
-        back_populates="note"
+    labels: Mapped[list["Label"]] = relationship(
+        back_populates="note",
+        cascade="all, delete-orphan",
+        lazy="selectin"
     )
 
-    comments: Mapped[list["Comment"]] = relationship(
-        back_populates="note"
-    )
-
-    tags: Mapped[list["Tag"]] = relationship(
-        secondary="note_tag",
-        back_populates="notes"
-    )
+    
