@@ -1,5 +1,3 @@
-# app/routers/folder.py
-
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, status
