@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class ProblemDetails(BaseModel):
-    title: str = Field(
+    type: str = Field(
         default = "about:blank",
         description="A URI reference identifying the problem type.",
     )
