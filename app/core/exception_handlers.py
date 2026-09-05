@@ -29,10 +29,16 @@ async def domain_exception_handler(
         instance=request.url.path
     )
 
+    headers = {}
+
+    if status_code == 401:
+        headers["WWW-Authenticate"] = "Bearer"
+
     return JSONResponse(
         status_code=status_code,
         content=jsonable_encoder(problem),
         media_type="application/problem+json",
+        headers=headers
     )
 
 

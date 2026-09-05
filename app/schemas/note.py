@@ -52,7 +52,7 @@ class NoteUpdate(BaseModel):
     @classmethod
     def validate_and_sanitize_title(cls, value: str | None) -> str | None:
         if value is None:
-            raise ValueError("Note title cannot be null.")
+            return None
 
         trimmed_value = value.strip()
 

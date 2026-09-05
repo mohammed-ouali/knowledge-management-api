@@ -1,8 +1,9 @@
 from app.core.exceptions import (
+    InvalidFolderHierarchyException,
     FolderAlreadyExistsException,
     FolderNotFoundException,
 )
-from app.models import Folder, Note
+from app.models import Folder
 from app.repositories.folder import FolderRepository
 from app.schemas.folder import (
     FolderCreate,
@@ -87,8 +88,8 @@ class FolderService:
 
         if current_folder_id is not None:
             if parent_id == current_folder_id:
-                raise ValueError(
-                    "A folder cannot be its own parent."
+                raise InvalidFolderHierarchyException(
+                    "Folder cannot be its own parent"
                 )
 
         visited: set[int] = set()
@@ -97,15 +98,15 @@ class FolderService:
         while current is not None:
         
             if current.id in visited:
-                raise ValueError(
-                    "Circular folder hierarchy detected."
+                raise InvalidFolderHierarchyException(
+                    "Circular folder hierarchy detected"
                 )
         
             visited.add(current.id)
         
             if current.id == current_folder_id:
-                raise ValueError(
-                    "A folder cannot become a descendant of itself."
+                raise InvalidFolderHierarchyException(
+                    "Folder cannot become a descendant of itself"
                 )
         
             if current.parent_id is None:

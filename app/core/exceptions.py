@@ -51,6 +51,11 @@ class FolderAlreadyExistsException(DomainException):
         super().__init__(message)
 
 
+class InvalidFolderHierarchyException(DomainException):
+    def __init__(self, message: str = "Invalid folder hierarchy"):
+        super().__init__(message)
+
+
 class NoteNotFoundException(DomainException):
     def __init__(self, message: str = "Note not found"):
         super().__init__(message)
@@ -65,6 +70,22 @@ class LabelAlreadyExistsException(DomainException):
     def __init__(self, message: str = "Label already exists"):
         super().__init__(message)
 
+class InvalidCredentialsException(DomainException):
+    def __init__(self, message: str = "Invalid Credentials"):
+        super().__init__(message)
+
+class TokenExpiredException(DomainException):
+    def __init__(self, message: str = "Token Expired"):
+        super().__init__(message)
+
+class InvalidTokenException(DomainException):
+    def __init__(self, message: str = "Invalid Token"):
+        super().__init__(message)
+
+class PermissionDeniedException(DomainException):
+    def __init__(self, message: str = "Forbidden"):
+        super().__init__(message)
+
 DOMAIN_EXCEPTION_MAP: dict[type[DomainException], tuple[int, str]] = {
     UserNotFoundException: (status.HTTP_404_NOT_FOUND, "User Not Found"),
     FolderNotFoundException: (status.HTTP_404_NOT_FOUND, "Folder Not Found"),
@@ -73,5 +94,10 @@ DOMAIN_EXCEPTION_MAP: dict[type[DomainException], tuple[int, str]] = {
     UserAlreadyExistsException: (status.HTTP_409_CONFLICT, "User Already Exists"),
     FolderAlreadyExistsException: (status.HTTP_409_CONFLICT, "Folder Already Exists"),
     LabelAlreadyExistsException: (status.HTTP_409_CONFLICT, "Label Already Exists"),
+    InvalidFolderHierarchyException: (status.HTTP_400_BAD_REQUEST, "Invalid Folder Hierarchy"),
+    InvalidCredentialsException: (status.HTTP_401_UNAUTHORIZED, "Invalid Credentials"),
+    TokenExpiredException: (status.HTTP_401_UNAUTHORIZED, "Token Expired"),
+    InvalidTokenException: (status.HTTP_401_UNAUTHORIZED, "Invalid Token"),
+    PermissionDeniedException: (status.HTTP_403_FORBIDDEN, "Forbidden"),
     DomainException: (status.HTTP_400_BAD_REQUEST, "Bad Request"),
 }
