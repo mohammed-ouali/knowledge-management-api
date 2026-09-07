@@ -1,4 +1,5 @@
 from app.models import User
+from app.core.security import get_password_hash
 from app.repositories.user import UserRepository
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
@@ -71,7 +72,8 @@ class UserService:
         user = User(
             username=user_data.username,
             email=user_data.email,
-            password_hash=user_data.password,
+            password_hash=get_password_hash(user_data.password),
+            is_active=True
         )
 
         return await self.repository.create(user)
