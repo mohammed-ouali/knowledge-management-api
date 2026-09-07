@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.api.dependencies import get_db
 from app.repositories.user import UserRepository
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.user import UserCreate, UserResponse, UserUpdate

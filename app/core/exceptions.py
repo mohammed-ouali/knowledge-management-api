@@ -41,6 +41,11 @@ class UserAlreadyExistsException(DomainException):
         super().__init__(message)
 
 
+class UserInactiveException(DomainException):
+    def __init__(self, message: str = "User account is inactive"):
+        super().__init__(message)
+
+
 class FolderNotFoundException(DomainException):
     def __init__(self, message: str = "Folder not found"):
         super().__init__(message)
@@ -99,5 +104,6 @@ DOMAIN_EXCEPTION_MAP: dict[type[DomainException], tuple[int, str]] = {
     TokenExpiredException: (status.HTTP_401_UNAUTHORIZED, "Token Expired"),
     InvalidTokenException: (status.HTTP_401_UNAUTHORIZED, "Invalid Token"),
     PermissionDeniedException: (status.HTTP_403_FORBIDDEN, "Forbidden"),
+    UserInactiveException: (status.HTTP_403_FORBIDDEN, "User Inactive"),
     DomainException: (status.HTTP_400_BAD_REQUEST, "Bad Request"),
 }

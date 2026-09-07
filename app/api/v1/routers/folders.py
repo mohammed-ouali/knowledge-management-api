@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.api.dependencies import get_db
 from app.repositories.folder import FolderRepository
 from app.schemas.folder import (
     FolderCreate,
