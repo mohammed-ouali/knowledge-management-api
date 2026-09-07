@@ -8,7 +8,6 @@ from app.core.exceptions import TokenExpiredException, InvalidTokenException
 
 from datetime import datetime, timezone, timedelta
 
-from typing import Any
 
 password_hash = PasswordHash((Argon2Hasher(),))
 

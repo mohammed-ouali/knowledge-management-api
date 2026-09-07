@@ -76,5 +76,6 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     created_at: datetime
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
