@@ -1,7 +1,7 @@
 from app.core.exceptions import (
-    InvalidFolderHierarchyException,
     FolderAlreadyExistsException,
     FolderNotFoundException,
+    InvalidFolderHierarchyException,
 )
 from app.models import Folder
 from app.repositories.folder import FolderRepository
@@ -24,12 +24,12 @@ class FolderService:
 
     async def get_all_folders(
         self,
+        user_id: int,
         page: int = 1,
         limit: int = 10,
         q: str | None = None,
         sort_by: str = "created_at",
         order: str = "asc",
-        user_id: int | None = None,
     ) -> PaginatedResponse[FolderResponse]:
 
         offset = (page - 1) * limit
@@ -53,9 +53,10 @@ class FolderService:
     async def get_folder_by_id(
         self,
         folder_id: int,
+        user_id: int,
     ) -> Folder:
 
-        folder = await self.repository.get_by_id(folder_id)
+        folder = await self.repository.get_by_id(folder_id=folder_id, user_id=user_id)
 
         if folder is None:
             raise FolderNotFoundException(
@@ -70,78 +71,53 @@ class FolderService:
         parent_id: int | None,
         current_folder_id: int | None = None,
     ) -> None:
-
         if parent_id is None:
             return
-
-        parent = await self.repository.get_by_id(parent_id)
-
-        if parent is None:
-            raise FolderNotFoundException(
-                f"Parent folder with ID {parent_id} not found"
-            )
-
-        if parent.user_id != user_id:
-            raise FolderNotFoundException(
-                f"Parent folder with ID {parent_id} not found"
-            )
-
-        if current_folder_id is not None:
-            if parent_id == current_folder_id:
-                raise InvalidFolderHierarchyException(
-                    "Folder cannot be its own parent"
-                )
-
-        visited: set[int] = set()
+    
+        parent = await self.get_folder_by_id(folder_id=parent_id, user_id=user_id)
+    
+        if current_folder_id is not None and parent_id == current_folder_id:
+            raise InvalidFolderHierarchyException("Folder cannot be its own parent")
+    
         current = parent
-        
-        while current is not None:
-        
-            if current.id in visited:
-                raise InvalidFolderHierarchyException(
-                    "Circular folder hierarchy detected"
-                )
-        
-            visited.add(current.id)
-        
-            if current.id == current_folder_id:
+        while current.parent_id is not None:
+            if current.parent_id == current_folder_id:
                 raise InvalidFolderHierarchyException(
                     "Folder cannot become a descendant of itself"
                 )
-        
-            if current.parent_id is None:
-                break
-        
-            current = await self.repository.get_by_id(
-                current.parent_id
+    
+            current = await self.get_folder_by_id(
+                folder_id=current.parent_id, user_id=user_id
             )
 
     async def get_children(
         self,
         folder_id: int,
+        user_id: int,
     ) -> list[Folder]:
 
-        folder = await self.get_folder_by_id(folder_id)
+        folder = await self.get_folder_by_id(folder_id=folder_id, user_id=user_id)
 
         return await self.repository.get_children(
             parent_id=folder.id,
-            user_id=folder.user_id,
+            user_id=user_id,
         )
 
     async def get_folder_notes(
         self,
         folder_id: int,
+        user_id: int,
         page: int = 1,
         limit: int = 10,
     ) -> PaginatedResponse[NoteResponse]:
 
-        folder = await self.get_folder_by_id(folder_id)
+        folder = await self.get_folder_by_id(folder_id=folder_id, user_id=user_id)
 
         offset = (page - 1) * limit
 
         notes, total = await self.repository.get_notes(
             folder_id=folder.id,
-            user_id=folder.user_id,
+            user_id=user_id,
             offset=offset,
             limit=limit,
         )
@@ -156,98 +132,80 @@ class FolderService:
     async def create_folder(
         self,
         folder_data: FolderCreate,
+        user_id: int,
     ) -> Folder:
 
-        existing_folder = (
-            await self.repository.get_by_name_and_parent(
-                user_id=folder_data.user_id,
-                name=folder_data.name,
-                parent_id=folder_data.parent_id,
-            )
+        existing_folder = await self.repository.get_by_name_and_parent(
+            user_id=user_id,
+            name=folder_data.name,
+            parent_id=folder_data.parent_id,
         )
 
         if existing_folder:
             raise FolderAlreadyExistsException(
-                f"Folder with the name "
-                f"{folder_data.name} already exists "
-                f"in this folder"
+                f"Folder with the name '{folder_data.name}' already exists in this directory"
             )
 
         await self.validate_parent(
-            user_id=folder_data.user_id,
+            user_id=user_id,
             parent_id=folder_data.parent_id,
         )
 
         folder = Folder(
             name=folder_data.name,
-            user_id=folder_data.user_id,
+            user_id=user_id,
             parent_id=folder_data.parent_id,
         )
 
-        return await self.repository.create(folder)
+        return await self.repository.create(folder=folder)
 
     async def update_folder(
         self,
         folder_id: int,
         folder_data: FolderUpdate,
+        user_id: int,
     ) -> Folder:
-
-        folder = await self.get_folder_by_id(folder_id)
-
-        new_name = (
-            folder_data.name
-            if folder_data.name is not None
-            else folder.name
-        )
-
-        new_parent_id = (
-            folder_data.parent_id
-            if folder_data.parent_id is not None
-            else folder.parent_id
-        )
-
-        if (
-            new_name != folder.name
-            or new_parent_id != folder.parent_id
-        ):
-            existing_folder = (
-                await self.repository.get_by_name_and_parent(
-                    user_id=folder.user_id,
-                    name=new_name,
-                    parent_id=new_parent_id,
-                )
+    
+        folder = await self.get_folder_by_id(folder_id=folder_id, user_id=user_id)
+    
+        update_data = folder_data.model_dump(exclude_unset=True)
+    
+        new_name = update_data.get("name", folder.name)
+        new_parent_id = update_data.get("parent_id", folder.parent_id)
+    
+        if new_name != folder.name or new_parent_id != folder.parent_id:
+            existing_folder = await self.repository.get_by_name_and_parent(
+                user_id=user_id,
+                name=new_name,
+                parent_id=new_parent_id,
             )
-
-            if (
-                existing_folder
-                and existing_folder.id != folder.id
-            ):
+    
+            if existing_folder and existing_folder.id != folder.id:
                 raise FolderAlreadyExistsException(
-                    f"Folder with the name "
-                    f"{new_name} already exists "
-                    f"in this folder"
+                    f"Folder with the name '{new_name}' already exists in this directory"
                 )
-
-        if folder_data.parent_id is not None:
+    
+        if "parent_id" in update_data and update_data["parent_id"] != folder.parent_id:
             await self.validate_parent(
-                user_id=folder.user_id,
-                parent_id=folder_data.parent_id,
+                user_id=user_id,
+                parent_id=new_parent_id,
                 current_folder_id=folder.id,
             )
-
-        if folder_data.name is not None:
-            folder.name = folder_data.name
-
-        if folder_data.parent_id is not None:
-            folder.parent_id = folder_data.parent_id
-
-        return await self.repository.update(folder)
+    
+        if "name" in update_data:
+            folder.name = update_data["name"]
+    
+        if "parent_id" in update_data:
+            folder.parent_id = update_data["parent_id"]
+    
+        return await self.repository.update(folder=folder)
 
     async def delete_folder(
         self,
         folder_id: int,
+        user_id: int,
     ) -> None:
 
-        folder = await self.get_folder_by_id(folder_id)
+        folder = await self.get_folder_by_id(folder_id=folder_id, user_id=user_id)
 
-        await self.repository.delete(folder)
+        await self.repository.delete(folder=folder)

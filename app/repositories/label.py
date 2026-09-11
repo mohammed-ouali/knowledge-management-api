@@ -10,9 +10,7 @@ class LabelRepository:
         self.db = db
 
     async def get_all_by_note(self, note_id: int) -> list[Label]:
-        statement = select(Label).where(
-            Label.note_id == note_id
-        )
+        statement = select(Label).where(Label.note_id == note_id)
 
         result = await self.db.execute(statement)
 
@@ -33,17 +31,17 @@ class LabelRepository:
         return result.scalar_one_or_none()
 
     async def get_by_id_and_note(
-    self,
-    label_id: int,
-    note_id: int,
-) -> Label | None:
+        self,
+        label_id: int,
+        note_id: int,
+    ) -> Label | None:
         statement = select(Label).where(
             Label.id == label_id,
             Label.note_id == note_id,
         )
-    
+
         result = await self.db.execute(statement)
-    
+
         return result.scalar_one_or_none()
 
     async def create(self, label: Label) -> Label:

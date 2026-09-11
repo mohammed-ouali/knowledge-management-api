@@ -36,9 +36,7 @@ class NoteRepository:
                 )
             )
 
-        count_query = select(func.count()).select_from(
-            query.subquery()
-        )
+        count_query = select(func.count()).select_from(query.subquery())
 
         total_result = await self.db.execute(count_query)
         total = total_result.scalar_one()
@@ -64,11 +62,13 @@ class NoteRepository:
     async def get_by_id(
         self,
         note_id: int,
+        user_id: int | None = None,
     ) -> Note | None:
 
-        statement = select(Note).where(
-            Note.id == note_id
-        )
+        statement = select(Note).where(Note.id == note_id)
+
+        if user_id is not None:
+            statement = statement.where(Note.user_id == user_id)
 
         result = await self.db.execute(statement)
 

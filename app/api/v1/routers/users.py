@@ -1,14 +1,10 @@
-from typing import Literal
+from fastapi import APIRouter, Depends, status
 
-from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.api.dependencies import get_db
-from app.repositories.user import UserRepository
-from app.schemas.pagination import PaginatedResponse
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.api.dependencies.auth import get_current_active_user
+from app.api.dependencies.services import get_user_service
+from app.models import User
+from app.schemas.user import ChangePasswordRequest, UserResponse, UserUpdate
 from app.services.user import UserService
-
 
 router = APIRouter(
     prefix="/users",
@@ -16,98 +12,53 @@ router = APIRouter(
 )
 
 
-def get_user_service(
-    db: AsyncSession = Depends(get_db),
-) -> UserService:
-
-    repository = UserRepository(db)
-
-    return UserService(repository)
-
-
 @router.get(
-    "",
-    response_model=PaginatedResponse[UserResponse],
-)
-async def get_users(
-    page: int = Query(
-        default=1,
-        ge=1,
-        description="Page number",
-    ),
-    limit: int = Query(
-        default=20,
-        ge=1,
-        le=100,
-        description="Items per page",
-    ),
-    q: str | None = Query(
-        default=None,
-        description="Search by username",
-    ),
-    sort_by: Literal["username", "created_at"] = Query(
-        default="username",
-        description="Field to sort by",
-    ),
-    order: Literal["asc", "desc"] = Query(
-        default="asc",
-        description="Sorting direction",
-    ),
-    service: UserService = Depends(get_user_service),
-):
-    return await service.get_all_users(
-        page=page,
-        limit=limit,
-        q=q,
-        sort_by=sort_by,
-        order=order,
-    )
-
-
-@router.get(
-    "/{user_id}",
+    "/me",
     response_model=UserResponse,
 )
-async def get_user(
-    user_id: int,
-    service: UserService = Depends(get_user_service),
+async def get_current_user_profile(
+    current_user: User = Depends(get_current_active_user),
 ):
-    return await service.get_user_by_id(user_id)
+    return current_user
 
 
-@router.post(
-    "",
-    status_code=status.HTTP_201_CREATED,
+@router.patch(
+    "/me",
     response_model=UserResponse,
 )
-async def create_user(
-    user_data: UserCreate,
-    service: UserService = Depends(get_user_service),
-):
-    return await service.create_user(user_data)
-
-
-@router.put(
-    "/{user_id}",
-    response_model=UserResponse,
-)
-async def update_user(
-    user_id: int,
+async def update_current_user_profile(
     user_data: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
     service: UserService = Depends(get_user_service),
 ):
     return await service.update_user(
-        user_id,
-        user_data,
+        user_id=current_user.id,
+        user_data=user_data,
+    )
+
+
+@router.post(
+    "/me/change-password",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_active_user),
+    service: UserService = Depends(get_user_service),
+):
+    await service.change_password(
+        user_id=current_user.id,
+        old_password=body.old_password,
+        new_password=body.new_password,
     )
 
 
 @router.delete(
-    "/{user_id}",
+    "/me",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_user(
-    user_id: int,
+async def delete_current_user_account(
+    current_user: User = Depends(get_current_active_user),
     service: UserService = Depends(get_user_service),
 ):
-    await service.delete_user(user_id)
+    await service.delete_user(user_id=current_user.id)

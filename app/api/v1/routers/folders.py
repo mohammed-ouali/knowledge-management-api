@@ -1,10 +1,9 @@
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db
-from app.repositories.folder import FolderRepository
+from app.api.dependencies.services import get_folder_service
+from app.api.dependencies.auth import get_current_active_user
 from app.schemas.folder import (
     FolderCreate,
     FolderResponse,
@@ -12,6 +11,7 @@ from app.schemas.folder import (
 )
 from app.schemas.note import NoteResponse
 from app.schemas.pagination import PaginatedResponse
+from app.models import User
 from app.services.folder import FolderService
 
 
@@ -19,15 +19,6 @@ router = APIRouter(
     prefix="/folders",
     tags=["Folders"],
 )
-
-
-def get_folder_service(
-    db: AsyncSession = Depends(get_db),
-) -> FolderService:
-
-    repository = FolderRepository(db)
-
-    return FolderService(repository)
 
 
 @router.get(
@@ -64,10 +55,8 @@ async def get_folders(
         default="asc",
         description="Sorting direction",
     ),
-    user_id: int | None = Query(
-        default=None,
-        gt=0,
-        description="Filter by user ID",
+    current_user: User = Depends(
+        get_current_active_user 
     ),
     service: FolderService = Depends(
         get_folder_service
@@ -79,7 +68,7 @@ async def get_folders(
         q=q,
         sort_by=sort_by,
         order=order,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
 
@@ -89,11 +78,14 @@ async def get_folders(
 )
 async def get_folder(
     folder_id: int,
+    current_user: User = Depends(
+        get_current_active_user
+    ),
     service: FolderService = Depends(
         get_folder_service
     ),
 ):
-    return await service.get_folder_by_id(folder_id)
+    return await service.get_folder_by_id(folder_id, user_id=current_user.id)
 
 
 @router.get(
@@ -102,11 +94,14 @@ async def get_folder(
 )
 async def get_folder_children(
     folder_id: int,
+    current_user: User = Depends(
+        get_current_active_user
+    ),
     service: FolderService = Depends(
         get_folder_service
     ),
 ):
-    return await service.get_children(folder_id)
+    return await service.get_children(folder_id, user_id=current_user.id)
 
 
 @router.get(
@@ -126,6 +121,9 @@ async def get_folder_notes(
         le=100,
         description="Items per page",
     ),
+    current_user: User = Depends(
+        get_current_active_user
+    ),
     service: FolderService = Depends(
         get_folder_service
     ),
@@ -134,6 +132,7 @@ async def get_folder_notes(
         folder_id=folder_id,
         page=page,
         limit=limit,
+        user_id=current_user.id
     )
 
 
@@ -144,11 +143,14 @@ async def get_folder_notes(
 )
 async def create_folder(
     folder_data: FolderCreate,
+    current_user: User = Depends(
+        get_current_active_user
+    ),
     service: FolderService = Depends(
         get_folder_service
     ),
 ):
-    return await service.create_folder(folder_data)
+    return await service.create_folder(folder_data, user_id=current_user.id)
 
 
 @router.put(
@@ -158,6 +160,9 @@ async def create_folder(
 async def update_folder(
     folder_id: int,
     folder_data: FolderUpdate,
+    current_user: User = Depends(
+        get_current_active_user
+    ),
     service: FolderService = Depends(
         get_folder_service
     ),
@@ -165,17 +170,22 @@ async def update_folder(
     return await service.update_folder(
         folder_id,
         folder_data,
+        user_id=current_user.id
     )
 
 
 @router.delete(
     "/{folder_id}",
+    response_model=None,
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_folder(
     folder_id: int,
+    current_user: User = Depends(
+        get_current_active_user
+    ),
     service: FolderService = Depends(
         get_folder_service
     ),
 ):
-    await service.delete_folder(folder_id)
+    await service.delete_folder(folder_id, user_id=current_user.id)

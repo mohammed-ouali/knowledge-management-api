@@ -1,44 +1,18 @@
-from app.models import User
-from app.core.security import get_password_hash
-from app.repositories.user import UserRepository
-from app.schemas.pagination import PaginatedResponse
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.core.exceptions import (
+    InvalidPasswordException,
     UserAlreadyExistsException,
     UserNotFoundException,
 )
+from app.core.security import get_password_hash, verify_password
+from app.models import User
+from app.repositories.user import UserRepository
+from app.schemas.user import UserCreate, UserUpdate
 
 
 class UserService:
 
     def __init__(self, repository: UserRepository):
         self.repository = repository
-
-    async def get_all_users(
-        self,
-        page: int = 1,
-        limit: int = 10,
-        q: str | None = None,
-        sort_by: str = "username",
-        order: str = "asc",
-    ) -> PaginatedResponse[UserResponse]:
-
-        offset = (page - 1) * limit
-
-        items, total = await self.repository.get_all(
-            offset=offset,
-            limit=limit,
-            q=q,
-            sort_by=sort_by,
-            order=order,
-        )
-
-        return PaginatedResponse[UserResponse](
-            items=items,
-            total=total,
-            page=page,
-            limit=limit,
-        )
 
     async def get_user_by_id(
         self,
@@ -73,7 +47,7 @@ class UserService:
             username=user_data.username,
             email=user_data.email,
             password_hash=get_password_hash(user_data.password),
-            is_active=True
+            is_active=True,
         )
 
         return await self.repository.create(user)
@@ -86,36 +60,28 @@ class UserService:
 
         user = await self.get_user_by_id(user_id)
 
-        if (
-            user_data.username is not None
-            and user_data.username != user.username
-        ):
-            if await self.repository.get_by_username(
-                user_data.username
-            ):
-                raise UserAlreadyExistsException(
-                    "Username is already taken"
-                )
-
+        if user_data.username != user.username:
+            if await self.repository.get_by_username(user_data.username):
+                raise UserAlreadyExistsException("Username is already taken")
             user.username = user_data.username
 
-        if (
-            user_data.email is not None
-            and user_data.email != user.email
-        ):
-            if await self.repository.get_by_email(
-                user_data.email
-            ):
-                raise UserAlreadyExistsException(
-                    "Email is already registered"
-                )
-
-            user.email = user_data.email
-
-        if user_data.password is not None:
-            user.password_hash = user_data.password
-
         return await self.repository.update(user)
+
+    async def change_password(
+        self,
+        user_id: int,
+        old_password: str,
+        new_password: str,
+    ) -> None:
+
+        user = await self.get_user_by_id(user_id)
+
+        if not verify_password(old_password, user.password_hash):
+            raise InvalidPasswordException("Current password is incorrect")
+
+        user.password_hash = get_password_hash(new_password)
+
+        await self.repository.update(user)
 
     async def delete_user(
         self,

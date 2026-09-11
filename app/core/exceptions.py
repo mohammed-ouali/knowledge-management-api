@@ -87,9 +87,9 @@ class InvalidTokenException(DomainException):
     def __init__(self, message: str = "Invalid Token"):
         super().__init__(message)
 
-class PermissionDeniedException(DomainException):
-    def __init__(self, message: str = "Forbidden"):
-        super().__init__(message)
+class InvalidPasswordException(DomainException):
+    def __init__(self, message: str = "Invalid password"):
+        super().__init__(message=message, status_code=400)
 
 DOMAIN_EXCEPTION_MAP: dict[type[DomainException], tuple[int, str]] = {
     UserNotFoundException: (status.HTTP_404_NOT_FOUND, "User Not Found"),
@@ -103,7 +103,7 @@ DOMAIN_EXCEPTION_MAP: dict[type[DomainException], tuple[int, str]] = {
     InvalidCredentialsException: (status.HTTP_401_UNAUTHORIZED, "Invalid Credentials"),
     TokenExpiredException: (status.HTTP_401_UNAUTHORIZED, "Token Expired"),
     InvalidTokenException: (status.HTTP_401_UNAUTHORIZED, "Invalid Token"),
-    PermissionDeniedException: (status.HTTP_403_FORBIDDEN, "Forbidden"),
     UserInactiveException: (status.HTTP_403_FORBIDDEN, "User Inactive"),
+    InvalidPasswordException: (status.HTTP_400_BAD_REQUEST, "Invalid Password"),
     DomainException: (status.HTTP_400_BAD_REQUEST, "Bad Request"),
 }
