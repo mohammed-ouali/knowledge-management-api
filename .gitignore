@@ -40,3 +40,7 @@ dist/
 # Local SQLite databases (if ever used)
 *.db
 *.sqlite3
+
+# Log files
+logs/
+*.log
